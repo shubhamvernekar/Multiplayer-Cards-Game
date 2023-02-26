@@ -8,12 +8,68 @@
 </head>
 <body>
     <script>
+        let ws;
+        let joinGameBtn;
+        let betBtn;
+        let endGameBtn;
+        let id = 0;
+        
         function joinGame(gameUrl) {
-            const ws = new WebSocket(gameUrl);
+            ws = new WebSocket(gameUrl);
+
+            ws.addEventListener('message', (event) => {
+                let prefix = event.data.toString().split(":")[0];
+                let value = event.data.toString().split(":")[1];
+                console.log("client join");
+                switch(prefix) {
+                    case "CE": gameJoin(value);
+                            break;
+                }
+            });
+        }
+        function bet(amount) {
+            ws.send(`AT:${id}:${amount}`);
+        }
+        function endGame() {
+            ws.close();
+            joinGameBtn.disabled = false;
+            betBtn.disabled = true;
+            endGameBtn.disabled = true;
+        }
+
+        function gameJoin(idx) {
+            id = Number(idx);
+            console.log(id);
+            switch(id) {
+                case 1: document.getElementById("player1Label").style.color = "green";
+                console.log("set color 1");
+                break;
+                case 2: document.getElementById("player2Label").style.color = "green";
+                console.log("set color 2");
+                break;
+            }
+            joinGameBtn = document.getElementById("joinGameBtn");
+            betBtn = document.getElementById("betBtn");
+            endGameBtn = document.getElementById("endGameBtn");
+            joinGameBtn.disabled = true;
+            betBtn.disabled = false;
+            endGameBtn.disabled = false;
         }
     </script>
-    <button onclick="joinGame('<%=gameUrl%>')">
+    <p>Players</p>
+    <label id="player1Label" style="color: red;">Player 1 <label id="player 1"></label></label>
+    <label id="player2Label" style="color: red;">Player 2 <label id="player 2"></label></label>
+    </br>
+    </br>
+
+    <button id="joinGameBtn" onclick="joinGame('<%=gameUrl%>')">
         Join Game
+    </button>
+    <button id="betBtn" onclick="bet(1000)" disabled = true>
+        Bet
+    </button>
+    <button id = "endGameBtn" onclick="endGame()" disabled = true>
+        End Game
     </button>
 </body>
 </html>
