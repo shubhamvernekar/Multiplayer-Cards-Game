@@ -12,42 +12,91 @@
         let joinGameBtn;
         let betBtn;
         let endGameBtn;
-        let id = 0;
-        
+        let myID = 0;
+
         function joinGame(gameUrl) {
             ws = new WebSocket(gameUrl);
 
+            ws.addEventListener('open', (event) => {
+                ws.send(`JN`);
+            });
+
             ws.addEventListener('message', (event) => {
-                let prefix = event.data.toString().split(":")[0];
-                let value = event.data.toString().split(":")[1];
-                console.log("client join");
+                let prefix = event.data.toString().split("|")[0];
+                let value = event.data.toString().split("|")[1];
                 switch(prefix) {
-                    case "CE": gameJoin(value);
+                    case "JG": gameJoin(value);     // Join Game
+                            break;
+                    case "NU": newUserJoin(value);  // New User join
+                            break;
+                    case "CE": clientExitGame(value);
+                            break;
+                    case "BA": betAcknowledgement(value);
                             break;
                 }
             });
         }
-        function bet(amount) {
-            ws.send(`AT:${id}:${amount}`);
+
+        function bet() {
+            let ipElement = null;
+
+            switch(myID) {
+                case 1: ipElement = document.getElementById("p1ip");
+                    break;
+                case 2: ipElement = document.getElementById("p2ip");
+                    break;
+            }
+
+            if(ipElement == null) return;
+            let betAmount = ipElement.value;
+            let data = {
+                id: myID,
+                amount: betAmount
+            }
+
+            ws.send("UB|" + JSON.stringify(data));
         }
+
         function endGame() {
-            ws.close();
+            let data = {
+                id: myID
+            };
+
+            ws.send("EX|" + JSON.stringify(data));
             joinGameBtn.disabled = false;
             betBtn.disabled = true;
             endGameBtn.disabled = true;
         }
 
-        function gameJoin(idx) {
-            id = Number(idx);
-            console.log(id);
-            switch(id) {
-                case 1: document.getElementById("player1Label").style.color = "green";
-                console.log("set color 1");
-                break;
-                case 2: document.getElementById("player2Label").style.color = "green";
-                console.log("set color 2");
-                break;
+        function clientExitGame(data) {
+            data = JSON.parse(data);
+            let id = Number(data.id);
+
+            switch(data.id) {
+                case 1: document.getElementById("player1Label").style.color = "red";
+                    console.log("exi set color 1");
+                    break;
+                case 2: document.getElementById("player2Label").style.color = "red";
+                    console.log("exit set color 2");
+                    break;
             }
+        }
+
+        function gameJoin(data) {
+            data = JSON.parse(data);
+            myID = Number(data.id);
+
+            data.clients.forEach(id => {
+                switch(id) {
+                    case 1: document.getElementById("player1Label").style.color = "green";
+                        console.log("set color 1");
+                        break;
+                    case 2: document.getElementById("player2Label").style.color = "green";
+                        console.log("set color 2");
+                        break;
+                }
+            });
+
             joinGameBtn = document.getElementById("joinGameBtn");
             betBtn = document.getElementById("betBtn");
             endGameBtn = document.getElementById("endGameBtn");
@@ -55,17 +104,43 @@
             betBtn.disabled = false;
             endGameBtn.disabled = false;
         }
+
+        function newUserJoin(data) {
+            data = JSON.parse(data);
+            let id = Number(data.id);
+
+            switch(id) {
+                case 1: document.getElementById("player1Label").style.color = "green";
+                    break;
+                case 2: document.getElementById("player2Label").style.color = "green";
+                    break;
+            }
+        }
+
+        function betAcknowledgement(data) {
+            data = JSON.parse(data);
+            let id = Number(data.id);
+
+            switch(id) {
+                case 1: document.getElementById("p1ip").value = Number(data.amount);
+                    break;
+                case 2: document.getElementById("p2ip").value = Number(data.amount);
+                    break;
+            }
+        }
+
     </script>
     <p>Players</p>
-    <label id="player1Label" style="color: red;">Player 1 <label id="player 1"></label></label>
-    <label id="player2Label" style="color: red;">Player 2 <label id="player 2"></label></label>
+    <label id="player1Label" style="color: red;">Player 1 <input type="number" id="p1ip" name="fname"><br><br></label>
+
+    <label id="player2Label" style="color: red;">Player 2 <input type="number" id="p1ip" name="fname"><br><br></label>
     </br>
     </br>
 
     <button id="joinGameBtn" onclick="joinGame('<%=gameUrl%>')">
         Join Game
     </button>
-    <button id="betBtn" onclick="bet(1000)" disabled = true>
+    <button id="betBtn" onclick="bet()" disabled = true>
         Bet
     </button>
     <button id = "endGameBtn" onclick="endGame()" disabled = true>
